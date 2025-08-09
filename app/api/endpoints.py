@@ -21,7 +21,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         raise HTTPException(status_code=401, detail="Invalid authorization token")
     return credentials.credentials
 
-@router.post("/hackrx/run", response_model=QueryResponse)
+@router.post("/hackrx/run")
 async def run_query(
     request: QueryRequest,
     background_tasks: BackgroundTasks,
@@ -57,11 +57,10 @@ async def run_query(
         # Add background task for cleanup if needed
         background_tasks.add_task(cleanup_resources)
         
-        return QueryResponse(
-            answers=result['answers'],
-            processing_time=processing_time,
-            metadata=result.get('metadata', {})
-        )
+        # Return only the answers array in the requested format
+        return {
+            "answers": result['answers']
+        }
         
     except HTTPException:
         raise
