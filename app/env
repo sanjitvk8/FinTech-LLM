@@ -1,0 +1,28 @@
+# OpenAI Configuration
+OPENAI_API_KEY="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"
+OPENAI_MODEL="gpt-4o"
+EMBEDDING_MODEL="text-embedding-3-small"
+
+# Pinecone Configuration (optional)
+PINECONE_API_KEY="pcsk_74W9e2_Ph5MYgYX8q4BsBdhVkjaMHFeUVLsVq2JM8HNyvsEsPRPEC3i5aWGgdcq3wpugHo"
+PINECONE_ENVIRONMENT="us-east-1-aws"
+PINECONE_INDEX_NAME="document-retrieval"
+
+# Database Configuration
+DATABASE_URL="postgresql://postgres:password@localhost:5432/llm_doc_processing"
+
+# Application Configuration
+SECRET_KEY="Kj8#mN2$pQ9@rT6&yU3!eW7*zA1%cV5^bX4(dF8)gH0+lM9-nP2=qS6~tY3<zA7>"
+DEBUG=True
+
+# Processing Configuration
+CHUNK_SIZE=1000
+CHUNK_OVERLAP=200
+MAX_TOKENS_PER_REQUEST=4000
+SIMILARITY_THRESHOLD=0.3
+MAX_RETRIEVED_CHUNKS=10
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
+CACHE_TTL=3600
+
