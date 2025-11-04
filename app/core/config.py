@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 from pydantic_settings import BaseSettings
+from pydantic import Field
 
 class Settings(BaseSettings):
     # API Configuration
@@ -31,6 +32,11 @@ class Settings(BaseSettings):
     # Database Configuration
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/dbname")
     
+    # MongoDB Configuration
+    MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    MONGODB_DB_NAME: str = os.getenv("MONGODB_DB_NAME", "fintech_llm")
+    CHATS_COLLECTION_NAME: str = os.getenv("CHATS_COLLECTION_NAME", "chats")
+    
     # Authentication
     SECRET_KEY: str = os.getenv("SECRET_KEY", "Kj8#mN2$pQ9@rT6&yU3!eW7*zA1%cV5^bX4(dF8)gH0+lM9-nP2=qS6~tY3<zA7>")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -44,7 +50,6 @@ class Settings(BaseSettings):
     
     # File Processing
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
-    ALLOWED_EXTENSIONS: set = {".pdf", ".docx", ".txt", ".eml"}
     
     # Cache Configuration
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -57,4 +62,12 @@ class Settings(BaseSettings):
     }
 
 settings = Settings()
+
+# Keep ALLOWED_EXTENSIONS as an internal constant (not read from environment).
+# Attach it to the settings instance for backward compatibility with code
+# that references `settings.ALLOWED_EXTENSIONS`.
+# Pydantic BaseSettings disallows setting unknown fields via attribute assignment
+# after construction. Use object.__setattr__ to attach this runtime-only
+# constant to the settings instance without invoking pydantic's validators.
+object.__setattr__(settings, 'ALLOWED_EXTENSIONS', {".pdf", ".docx", ".txt", ".eml"})
 

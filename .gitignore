@@ -27,5 +27,3 @@ Thumbs.db
 # Uploads and vector store
 uploads/
 vector_store/
-
-app/env/

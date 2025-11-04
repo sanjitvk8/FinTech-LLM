@@ -26,6 +26,112 @@ from typing import Optional
 import tempfile
 import mimetypes
 
+# Initialize MongoDB manager
+import sys
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Add the project root to sys.path to ensure proper imports
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+mongodb_manager = None
+
+try:
+    # Try to import the pre-built MongoDB manager
+    from app.utils.mongodb import mongodb_manager
+    if mongodb_manager is not None:
+        print("MongoDB manager imported successfully")
+    else:
+        print("Warning: MongoDB manager was imported but is None")
+except ImportError as e:
+    # If the import fails, try to dynamically create one
+    print(f"Could not import MongoDB manager from app.utils.mongodb: {e}")
+    print("Attempting to create MongoDB manager dynamically...")
+    
+    try:
+        # Import required modules directly
+        from pymongo import MongoClient
+        from datetime import datetime
+        from typing import Optional, List, Dict, Any
+        from app.core.config import settings
+        
+        # Create a simple MongoDB manager class
+        class DynamicMongoDBManager:
+            def __init__(self):
+                self.client = None
+                self.db = None
+                self.chats_collection = None
+            
+            def connect(self):
+                try:
+                    self.client = MongoClient(settings.MONGODB_URL)
+                    self.db = self.client[settings.MONGODB_DB_NAME]
+                    self.chats_collection = self.db[settings.CHATS_COLLECTION_NAME]
+                    
+                    # Create indexes for better query performance
+                    self.chats_collection.create_index("timestamp")
+                    self.chats_collection.create_index([("document_id", 1)])
+                    self.chats_collection.create_index([("user_query", "text"), ("response", "text")])
+                    
+                    logger.info(f"Successfully connected to MongoDB: {settings.MONGODB_URL}")
+                    logger.info(f"Database: {settings.MONGODB_DB_NAME}")
+                    logger.info(f"Collection: {settings.CHATS_COLLECTION_NAME}")
+                    return True
+                except Exception as e:
+                    logger.error(f"Error connecting to MongoDB: {str(e)}")
+                    return False
+            
+            def disconnect(self):
+                if self.client:
+                    self.client.close()
+                    logger.info("MongoDB connection closed")
+            
+            def save_chat_conversation(self, user_query: str, response: str, document_id: Optional[str] = None, sources: Optional[List[str]] = None, context: Optional[List[str]] = None) -> Optional[str]:
+                try:
+                    chat_doc = {
+                        "user_query": user_query,
+                        "response": response,
+                        "document_id": document_id,
+                        "sources": sources or [],
+                        "context": context or [],
+                        "timestamp": datetime.utcnow()
+                    }
+                    
+                    result = self.chats_collection.insert_one(chat_doc)
+                    logger.info(f"Chat conversation saved with ID: {result.inserted_id}")
+                    return str(result.inserted_id)
+                except Exception as e:
+                    logger.error(f"Error saving chat conversation: {str(e)}")
+                    return None
+            
+            def get_all_chats(self, limit: int = 100) -> List[Dict[str, Any]]:
+                try:
+                    chats = list(self.chats_collection.find().sort("timestamp", -1).limit(limit))
+                    for chat in chats:
+                        chat["_id"] = str(chat["_id"])
+                    return chats
+                except Exception as e:
+                    logger.error(f"Error retrieving chat conversations: {str(e)}")
+                    return []
+        
+        mongodb_manager = DynamicMongoDBManager()
+        print("Dynamically created MongoDB manager successfully")
+        
+    except ImportError as mongo_import_error:
+        print(f"Could not create MongoDB manager: missing dependencies - {mongo_import_error}")
+        print("Please install pymongo: pip install pymongo")
+        mongodb_manager = None
+    except Exception as e:
+        print(f"Unexpected error creating MongoDB manager: {e}")
+        mongodb_manager = None
+except Exception as e:
+    print(f"Unexpected error importing MongoDB manager: {e}")
+    mongodb_manager = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -398,10 +504,27 @@ def create_app():
         if not settings.has_openai_key:
             logger.warning("OpenAI API key not configured! The application will run with limited functionality.")
         
+        # Initialize MongoDB connection
+        if mongodb_manager is not None:
+            try:
+                mongodb_manager.connect()
+                logger.info("MongoDB connection established successfully")
+                logger.info(f"Connected to: {settings.MONGODB_URL}")
+                logger.info(f"Using database: {settings.MONGODB_DB_NAME}")
+                logger.info(f"Using collection: {settings.CHATS_COLLECTION_NAME}")
+            except Exception as e:
+                logger.error(f"Failed to connect to MongoDB: {str(e)}")
+                logger.warning("Application will continue without MongoDB functionality")
+        else:
+            logger.warning("MongoDB manager not available, skipping MongoDB initialization")
+            logger.info("To enable MongoDB functionality, ensure pymongo is installed: pip install pymongo")
+        
         yield
         
         # Shutdown
         logger.info("Shutting down LLM Document Processing System...")
+        # Close MongoDB connection
+        mongodb_manager.disconnect()
 
     # Create FastAPI application
     app = FastAPI(
@@ -541,18 +664,61 @@ def create_app():
                     # Add document_id to the result
                     if isinstance(result, dict) and 'sources' in result:
                         result['document_id'] = document_id
-                    return QueryResponse(**result)
+                    
+                    response = QueryResponse(**result)
+                    
+                    # Store the conversation in MongoDB if connection is available
+                    if mongodb_manager is not None:
+                        try:
+                            chat_id = mongodb_manager.save_chat_conversation(
+                                user_query=actual_query,
+                                response=response.answer,
+                                document_id=document_id,
+                                sources=response.sources,
+                                context=response.context
+                            )
+                            if chat_id:
+                                logger.info(f"Document processing chat successfully saved to MongoDB with ID: {chat_id}")
+                            else:
+                                logger.warning("Document processing chat was not saved to MongoDB (returned None ID)")
+                        except Exception as e:
+                            logger.error(f"Error saving document processing chat to MongoDB: {str(e)}", exc_info=True)
+                    else:
+                        logger.info("MongoDB not available, skipping chat storage for document processing")
+                    
+                    return response
                 except Exception as e:
                     logger.error(f"Error processing document with Gemini: {str(e)}")
-                    return QueryResponse(
+                    response = QueryResponse(
                         answer=f"Error processing with Gemini: {str(e)}",
                         context=[],
                         sources=[],
                         document_id=document_id
                     )
+                    
+                    # Store the error in MongoDB as well
+                    if mongodb_manager is not None:
+                        try:
+                            chat_id = mongodb_manager.save_chat_conversation(
+                                user_query=query if query else "Provide a summary of this document",
+                                response=response.answer,
+                                document_id=document_id,
+                                sources=response.sources,
+                                context=response.context
+                            )
+                            if chat_id:
+                                logger.info(f"Document processing error chat successfully saved to MongoDB with ID: {chat_id}")
+                            else:
+                                logger.warning("Document processing error chat was not saved to MongoDB (returned None ID)")
+                        except Exception as mongo_e:
+                            logger.error(f"Error saving document processing error chat to MongoDB: {str(mongo_e)}", exc_info=True)
+                    else:
+                        logger.info("MongoDB not available, skipping error chat storage for document processing")
+                    
+                    return response
             else:
                 # Return a default response if no provider is configured
-                return {
+                response = {
                     "message": f"Document {file.filename} received. Configure an LLM provider for processing.",
                     "filename": file.filename,
                     "document_id": document_id,
@@ -560,6 +726,27 @@ def create_app():
                     "status": "uploaded",
                     "provider": settings.LLM_PROVIDER
                 }
+                
+                # Store the conversation in MongoDB if connection is available
+                if mongodb_manager is not None:
+                    try:
+                        chat_id = mongodb_manager.save_chat_conversation(
+                            user_query=query if query else "Provide a summary of this document",
+                            response=response["message"],
+                            document_id=document_id,
+                            sources=[file.filename],
+                            context=["Document upload without processing"]
+                        )
+                        if chat_id:
+                            logger.info(f"Document upload chat successfully saved to MongoDB with ID: {chat_id}")
+                        else:
+                            logger.warning("Document upload chat was not saved to MongoDB (returned None ID)")
+                    except Exception as e:
+                        logger.error(f"Error saving document upload chat to MongoDB: {str(e)}", exc_info=True)
+                else:
+                    logger.info("MongoDB not available, skipping chat storage for document upload")
+                
+                return response
         except Exception as e:
             logger.error(f"Error processing uploaded file: {str(e)}")
             return JSONResponse(
@@ -586,6 +773,36 @@ def create_app():
         models = list_available_gemini_models()
         return {"models": models, "default_model": settings.GEMINI_MODEL}
 
+    # Add endpoint to get stored chat conversations
+    @app.get(f"{settings.API_V1_STR}/chats")
+    async def get_chats(limit: int = 100):
+        """Retrieve stored chat conversations from MongoDB"""
+        if mongodb_manager is not None:
+            try:
+                chats = mongodb_manager.get_all_chats(limit=limit)
+                return {"chats": chats, "total": len(chats)}
+            except Exception as e:
+                logger.error(f"Error retrieving chats: {str(e)}")
+                return {"chats": [], "total": 0, "error": str(e)}
+        else:
+            logger.warning("MongoDB not available, returning empty chat list")
+            return {"chats": [], "total": 0, "error": "MongoDB not available"}
+
+    # Add endpoint to get chats by document ID
+    @app.get(f"{settings.API_V1_STR}/chats/document/{{document_id}}")
+    async def get_chats_by_document(document_id: str):
+        """Retrieve chat conversations related to a specific document"""
+        if mongodb_manager is not None:
+            try:
+                chats = mongodb_manager.get_chats_by_document_id(document_id)
+                return {"chats": chats, "total": len(chats), "document_id": document_id}
+            except Exception as e:
+                logger.error(f"Error retrieving chats for document {document_id}: {str(e)}")
+                return {"chats": [], "total": 0, "document_id": document_id, "error": str(e)}
+        else:
+            logger.warning("MongoDB not available, returning empty chat list for document")
+            return {"chats": [], "total": 0, "document_id": document_id, "error": "MongoDB not available"}
+
     # Query endpoint with document processing support
     @app.post(f"{settings.API_V1_STR}/query", response_model=QueryResponse)
     async def query_documents(request: QueryRequest):
@@ -593,18 +810,39 @@ def create_app():
         
         # If we have a specific document to query and Gemini is configured, use it
         if settings.LLM_PROVIDER.lower() == "gemini" and settings.GEMINI_API_KEY:
-            return await query_documents_with_gemini(request)
+            response = await query_documents_with_gemini(request)
         elif settings.LLM_PROVIDER.lower() == "openai" and settings.OPENAI_API_KEY:
-            return await query_documents_with_openai(request)
+            response = await query_documents_with_openai(request)
         elif settings.LLM_PROVIDER.lower() == "groq" and settings.GROQ_API_KEY:
-            return await query_documents_with_groq(request)
+            response = await query_documents_with_groq(request)
         else:
             # Default response if no provider is configured
-            return QueryResponse(
+            response = QueryResponse(
                 answer=f"This is a simulated response to your query: '{request.query}'. Configured provider: {settings.LLM_PROVIDER}",
                 context=["Simulated context from document chunks"],
                 sources=["Simulated document source"]
             )
+        
+        # Store the conversation in MongoDB if connection is available
+        if mongodb_manager is not None:
+            try:
+                chat_id = mongodb_manager.save_chat_conversation(
+                    user_query=request.query,
+                    response=response.answer,
+                    document_id=request.document_id,
+                    sources=response.sources,
+                    context=response.context
+                )
+                if chat_id:
+                    logger.info(f"Chat conversation successfully saved to MongoDB with ID: {chat_id}")
+                else:
+                    logger.warning("Chat conversation was not saved to MongoDB (returned None ID)")
+            except Exception as e:
+                logger.error(f"Error saving chat to MongoDB: {str(e)}", exc_info=True)
+        else:
+            logger.info("MongoDB not available, skipping chat storage")
+        
+        return response
 
     # Specific query endpoints for each provider
     async def query_documents_with_gemini(request: QueryRequest):
@@ -713,6 +951,41 @@ def create_app():
             "docs_url": "/docs",
             "health_check": f"{settings.API_V1_STR}/health"
         }
+
+    # MongoDB health check endpoint
+    @app.get(f"{settings.API_V1_STR}/mongodb-health")
+    async def mongodb_health():
+        """Check MongoDB connection status"""
+        if mongodb_manager is not None:
+            try:
+                if mongodb_manager.client:
+                    # Try a simple operation to verify the connection
+                    mongodb_manager.client.admin.command('ping')
+                    # Check if collection exists by attempting to count documents
+                    count = mongodb_manager.chats_collection.count_documents({}) if mongodb_manager.chats_collection else 0
+                    return {
+                        "status": "healthy",
+                        "message": "MongoDB connection is active",
+                        "database": settings.MONGODB_DB_NAME,
+                        "collection": settings.CHATS_COLLECTION_NAME,
+                        "document_count": count
+                    }
+                else:
+                    return {
+                        "status": "unhealthy",
+                        "message": "MongoDB manager initialized but client not connected"
+                    }
+            except Exception as e:
+                logger.error(f"MongoDB health check failed: {str(e)}")
+                return {
+                    "status": "unhealthy",
+                    "message": f"MongoDB connection error: {str(e)}"
+                }
+        else:
+            return {
+                "status": "unhealthy",
+                "message": "MongoDB manager not initialized - check if pymongo is installed"
+            }
 
     # Global exception handler
     @app.exception_handler(Exception)

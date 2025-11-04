@@ -11,9 +11,13 @@ services:
       - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
       - DATABASE_URL=postgresql://postgres:password@db:5432/llm_doc_processing
       - REDIS_URL=redis://redis:6379
+      - MONGODB_URL=mongodb://mongo_user:mongo_password@mongo:27017
+      - MONGODB_DB_NAME=fintech_llm
+      - CHATS_COLLECTION_NAME=chats
     depends_on:
       - db
       - redis
+      - mongo
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
@@ -39,7 +43,19 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
+  mongo:
+    image: mongo:6
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongo_user
+      - MONGO_INITDB_ROOT_PASSWORD=mongo_password
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
+  mongo_data:
 

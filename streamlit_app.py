@@ -101,7 +101,7 @@ with st.sidebar:
     st.divider()
     
     # Navigation
-    app_mode = st.selectbox("Choose Mode", ["Home", "Upload Documents", "Ask Questions", "About"])
+    app_mode = st.selectbox("Choose Mode", ["Home", "Upload Documents", "Ask Questions", "Chat History", "About"])
     
     # API Configuration (in case backend URL is different)
     st.divider()
@@ -378,12 +378,14 @@ elif app_mode == "About":
     - **Frontend**: Streamlit
     - **LLM Integration**: OpenAI GPT models
     - **Embeddings**: Vector storage and similarity search
+    - **Database**: MongoDB (for storing chat conversations)
     
     ### Features:
     - Document Upload (PDF, DOCX, TXT)
     - Intelligent Search and Querying
     - LLM-powered Analysis
     - Vector-based Document Retrieval
+    - Chat History Storage in MongoDB
     
     ### How It Works:
     1. Documents are uploaded and processed
@@ -391,6 +393,108 @@ elif app_mode == "About":
     3. Embeddings are generated for each chunk
     4. When you ask a question, it's compared to document embeddings
     5. Relevant document parts are used as context for LLM response
+    6. All conversations are stored in MongoDB for future reference
+    """)
+
+# Add a new mode for viewing chat history
+elif app_mode == "Chat History":
+    st.title("💬 Chat History Viewer")
+    
+    st.markdown("""
+    This section allows you to view stored chat conversations from the MongoDB database.
+    All questions asked and responses received are saved for future reference.
+    """)
+    
+    # Check if the backend API is accessible
+    if check_api_connection():
+        # Fetch chat history from the backend API
+        try:
+            with st.spinner("Loading chat history..."):
+                response = requests.get(f"{API_BASE_URL}/api/v1/chats?limit=100")
+                if response.status_code == 200:
+                    data = response.json()
+                    chats = data.get('chats', [])
+                    
+                    if chats:
+                        st.success(f"Loaded {len(chats)} chat conversations")
+                        
+                        # Create a filter for document-specific chats
+                        all_documents = set()
+                        for chat in chats:
+                            if chat.get('document_id'):
+                                all_documents.add(chat['document_id'])
+                        
+                        if all_documents:
+                            document_filter = st.selectbox(
+                                "Filter by Document ID (optional)",
+                                options=['All'] + sorted(list(all_documents))
+                            )
+                            
+                            if document_filter != 'All':
+                                chats = [chat for chat in chats if chat.get('document_id') == document_filter]
+                        else:
+                            document_filter = None
+                        
+                        st.subheader(f"Chat Conversations ({len(chats)})")
+                        
+                        for i, chat in enumerate(chats):
+                            with st.expander(f"Q: {chat.get('user_query', 'N/A')[:50]}..."):
+                                st.markdown(f"**Question:** {chat.get('user_query', 'N/A')}")
+                                st.markdown(f"**Response:** {chat.get('response', 'N/A')}")
+                                
+                                if chat.get('document_id'):
+                                    st.markdown(f"**Document ID:** {chat.get('document_id')}")
+                                
+                                if chat.get('sources'):
+                                    sources_str = ", ".join(chat.get('sources'))
+                                    st.markdown(f"**Sources:** {sources_str}")
+                                
+                                if chat.get('context'):
+                                    st.markdown("**Context:**")
+                                    for ctx in chat.get('context', []):
+                                        st.markdown(f"- {ctx}")
+                                
+                                timestamp = chat.get('timestamp', 'N/A')
+                                if timestamp != 'N/A':
+                                    # Convert timestamp to readable format if it's in ISO format
+                                    try:
+                                        from datetime import datetime
+                                        if isinstance(timestamp, str):
+                                            # Parse the timestamp
+                                            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                                            timestamp = dt.strftime("%Y-%m-%d %H:%M:%S")
+                                    except:
+                                        pass
+                                    st.markdown(f"**Time:** {timestamp}")
+                    else:
+                        st.info("No chat conversations found in the database.")
+                else:
+                    st.error(f"Failed to load chat history: {response.status_code}")
+        except Exception as e:
+            st.error(f"Error loading chat history: {str(e)}")
+    else:
+        st.error("⚠️ Cannot connect to backend API to retrieve chat history")
+        st.info("Make sure the FastAPI server is running on http://localhost:8000")
+    
+    # Add instructions for using the database viewer script
+    st.divider()
+    st.markdown("### 📁 Command Line Database Viewer")
+    st.markdown("""
+    You can also view the MongoDB database directly using the command line script:
+    
+    ```bash
+    # View the most recent 10 conversations
+    python view_mongodb.py
+    
+    # View all conversations
+    python view_mongodb.py --all
+    
+    # View conversations for a specific document
+    python view_mongodb.py --document <document_id>
+    
+    # View database statistics
+    python view_mongodb.py --stats
+    ```
     """)
 
 # Footer
