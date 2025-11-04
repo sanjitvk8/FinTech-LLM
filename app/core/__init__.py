@@ -1,10 +1,11 @@
-"""
-Core module containing the main business logic and services
-"""
-
-from .config import settings
+from .query_processor import QueryProcessor
+from .document_processor import DocumentProcessor
+from .embedding_service import EmbeddingService
+from .llm_service import LLMService
 
 __all__ = [
-    "settings"
+    "QueryProcessor",
+    "DocumentProcessor", 
+    "EmbeddingService",
+    "LLMService"
 ]
-

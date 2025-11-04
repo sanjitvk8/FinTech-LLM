@@ -1,0 +1,398 @@
+import streamlit as st
+import requests
+import os
+from typing import Optional
+import time
+import tempfile
+import json
+
+# Initialize session state for chat history if not exists
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "current_document" not in st.session_state:
+    st.session_state.current_document = None
+if "current_document_id" not in st.session_state:
+    st.session_state.current_document_id = None
+if "question_chat_history" not in st.session_state:
+    st.session_state.question_chat_history = []
+
+# Set up the Streamlit page configuration
+st.set_page_config(
+    page_title="FinTech-LLM Document Processing",
+    page_icon="🏦",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Define API base URL
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+
+# Function to check if API is accessible
+def check_api_connection():
+    try:
+        response = requests.get(f"{API_BASE_URL}/api/v1/health", timeout=5)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+
+# Function to process document with query to backend
+def process_document_with_query(file, query):
+    url = f"{API_BASE_URL}/api/v1/documents/process"
+    files = {"file": (file.name, file, file.type)}
+    data = {"query": query}
+    try:
+        response = requests.post(url, files=files, data=data)
+        return response.json() if response.status_code == 200 else None
+    except Exception as e:
+        st.error(f"Error processing document: {str(e)}")
+        return None
+
+# Function to query documents (for follow-up questions)
+def query_documents(query, document_id=None):
+    url = f"{API_BASE_URL}/api/v1/query"
+    data = {"query": query}
+    if document_id:
+        data["document_id"] = document_id
+    headers = {"Content-Type": "application/json"}
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        return response.json() if response.status_code == 200 else None
+    except Exception as e:
+        st.error(f"Error querying documents: {str(e)}")
+        return None
+
+# Function to upload document to backend
+def upload_document(file):
+    url = f"{API_BASE_URL}/api/v1/documents/upload"
+    files = {"file": (file.name, file, file.type)}
+    try:
+        response = requests.post(url, files=files)
+        return response.json() if response.status_code == 200 else None
+    except Exception as e:
+        st.error(f"Error uploading document: {str(e)}")
+        return None
+
+# Function to query documents
+def query_documents(query, document_id=None):
+    url = f"{API_BASE_URL}/api/v1/query"
+    data = {"query": query}
+    if document_id:
+        data["document_id"] = document_id
+    headers = {"Content-Type": "application/json"}
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        return response.json() if response.status_code == 200 else None
+    except Exception as e:
+        st.error(f"Error querying documents: {str(e)}")
+        return None
+
+# Sidebar
+with st.sidebar:
+    st.title("🏦 FinTech-LLM")
+    st.markdown("### Document Processing System")
+    
+    # Connection status
+    if check_api_connection():
+        st.success("Connected to backend API")
+    else:
+        st.error("⚠️ Backend API connection failed")
+        st.info("Make sure the FastAPI server is running on http://localhost:8000")
+    
+    st.divider()
+    
+    # Navigation
+    app_mode = st.selectbox("Choose Mode", ["Home", "Upload Documents", "Ask Questions", "About"])
+    
+    # API Configuration (in case backend URL is different)
+    st.divider()
+    st.markdown("### API Configuration")
+    api_base_url = st.text_input("API Base URL", value=API_BASE_URL, help="The URL of the backend API")
+    
+    # Show current LLM provider
+    try:
+        health_response = requests.get(f"{API_BASE_URL}/api/v1/health")
+        if health_response.status_code == 200:
+            # Try to get configuration info if available
+            pass
+    except:
+        pass
+    
+    if st.button("Update API URL"):
+        os.environ["API_BASE_URL"] = api_base_url
+        st.experimental_rerun()
+
+# Main content based on selected mode
+if app_mode == "Home":
+    st.title("🏦 FinTech-LLM Document Processing System")
+    st.markdown("""
+    Welcome to the FinTech-LLM platform! This application helps you process and query financial documents using advanced AI technology.
+    
+    ### Features:
+    - **Document Upload**: Upload various document formats (PDF, DOCX, TXT)
+    - **AI-Powered Queries**: Ask questions about your documents
+    - **Intelligent Processing**: LLM-powered analysis and insights
+    
+    ### Getting Started:
+    1. Navigate to **Upload Documents** to upload your financial documents
+    2. Go to **Ask Questions** to query your documents
+    3. Explore the results and insights generated by the AI
+    """)
+    
+    # Display API status
+    st.divider()
+    st.markdown("### System Status")
+    if check_api_connection():
+        with st.spinner("Checking system status..."):
+            response = requests.get(f"{API_BASE_URL}/api/v1/health")
+            if response.status_code == 200:
+                health_data = response.json()
+                st.success(f"✅ API Status: {health_data['status']}")
+                st.info(f"Version: {health_data['version']}")
+    else:
+        st.error("❌ Backend API is not accessible")
+
+elif app_mode == "Upload Documents":
+    st.title("📁 Upload Documents")
+    
+    st.markdown("""
+    Upload your financial documents (PDF, DOCX, TXT) for processing and analysis.
+    The system will extract content and prepare it for intelligent querying.
+    """)
+    
+    # File upload component
+    uploaded_file = st.file_uploader(
+        "Choose a document",
+        type=["pdf", "docx", "txt"],
+        help="Upload a PDF, DOCX, or TXT file for processing"
+    )
+    
+    # Option to process immediately or just upload
+    process_immediately = st.checkbox("Process document immediately with a query", value=True)
+    
+    if uploaded_file is not None:
+        st.success(f"✓ Selected file: {uploaded_file.name}")
+        st.info(f"File size: {uploaded_file.size} bytes")
+        
+        if process_immediately:
+            # Query input for immediate processing
+            query_input = st.text_area(
+                "Enter your question about the document",
+                placeholder="What would you like to know about this document?",
+                value="Provide a summary of this document"
+            )
+            
+            if st.button("Process Document with Query"):
+                with st.spinner("Processing document with query..."):
+                    result = process_document_with_query(uploaded_file, query_input)
+                    
+                    if result:
+                        st.success("✅ Document processed successfully!")
+                        
+                        # Store the document and initial result in session state
+                        st.session_state.current_document = uploaded_file.name
+                        
+                        # Store document ID if available
+                        document_id = result.get('document_id')
+                        if document_id:
+                            st.session_state.current_document_id = document_id
+                        
+                        # Add the query and response to chat history
+                        st.session_state.chat_history.append({
+                            "role": "user",
+                            "content": query_input,
+                            "document": uploaded_file.name
+                        })
+                        st.session_state.chat_history.append({
+                            "role": "assistant",
+                            "content": result.get('answer', 'No answer provided'),
+                            "sources": result.get('sources', []),
+                            "context": result.get('context', [])
+                        })
+                        
+                        # Clear the input
+                        st.rerun()
+                    else:
+                        st.error("Failed to process document. Please check API connection.")
+        else:
+            # Just upload button
+            if st.button("Upload Document"):
+                with st.spinner("Uploading document..."):
+                    result = upload_document(uploaded_file)
+                    
+                    if result:
+                        st.success("Document uploaded successfully!")
+                        st.session_state.current_document = uploaded_file.name
+                        # Store document ID if available
+                        document_id = result.get('document_id')
+                        if document_id:
+                            st.session_state.current_document_id = document_id
+                        st.json(result)
+                    else:
+                        st.error("Failed to upload document. Please check API connection.")
+    
+    # Display chat history if there are messages
+    if st.session_state.chat_history:
+        st.subheader("💬 Document Discussion")
+        
+        # Display chat messages
+        for i, message in enumerate(st.session_state.chat_history):
+            if message["role"] == "user":
+                st.markdown(f"**You:** {message['content']}")
+                if 'document' in message:
+                    st.markdown(f"*Document: {message['document']}*")
+                st.markdown("---")
+            else:  # assistant
+                st.markdown(f"**AI Assistant:** {message['content']}")
+                
+                # Display context if available
+                if message.get('context'):
+                    with st.expander("Show Context"):
+                        for ctx in message['context']:
+                            st.markdown(f"- {ctx}")
+                
+                # Display sources if available
+                if message.get('sources'):
+                    sources_str = ", ".join(message['sources'])
+                    st.markdown(f"*Sources: {sources_str}*")
+                st.markdown("---")
+    
+    # Input for follow-up questions if a document has been processed
+    if st.session_state.current_document:
+        st.subheader("❓ Ask Follow-up Questions")
+        follow_up_query = st.text_input("Ask a question about the document:", 
+                                       placeholder="Type your question here...")
+        
+        if st.button("Ask Question"):
+            if follow_up_query.strip():
+                with st.spinner("Processing your question..."):
+                    # Get the document ID from session state
+                    document_id = st.session_state.get('current_document_id')
+                    
+                    result = query_documents(follow_up_query, document_id=document_id)
+                    
+                    if result:
+                        # Add the query and response to chat history
+                        st.session_state.chat_history.append({
+                            "role": "user",
+                            "content": follow_up_query
+                        })
+                        st.session_state.chat_history.append({
+                            "role": "assistant",
+                            "content": result.get('answer', 'No answer provided'),
+                            "sources": result.get('sources', []),
+                            "context": result.get('context', [])
+                        })
+                        
+                        # Clear the input and rerun to update the display
+                        st.rerun()
+                    else:
+                        st.error("Failed to process your question. Please check API connection.")
+            else:
+                st.warning("Please enter a question.")
+
+elif app_mode == "Ask Questions":
+    st.title("❓ Ask Questions")
+    
+    st.markdown("""
+    Ask questions about your uploaded documents. The AI will analyze the content and provide intelligent answers.
+    """)
+    
+    # Query input
+    query_input = st.text_area(
+        "Your Question",
+        placeholder="Enter your question about the documents...",
+        height=150
+    )
+    
+    # Advanced options
+    with st.expander("Advanced Options"):
+        # Use the currently uploaded document ID as default if available
+        default_doc_id = st.session_state.get('current_document_id', '')
+        document_id = st.text_input("Document ID (optional)", value=default_doc_id, help="Specify a particular document to query")
+    
+    # Submit button
+    if st.button("Get Answer", type="primary"):
+        if not query_input.strip():
+            st.warning("Please enter a question.")
+        else:
+            with st.spinner("Processing your question..."):
+                result = query_documents(query_input.strip(), document_id)
+                
+                if result:
+                    # Add the query and response to chat history
+                    st.session_state.question_chat_history.append({
+                        "role": "user",
+                        "content": query_input.strip(),
+                        "document_id": document_id
+                    })
+                    st.session_state.question_chat_history.append({
+                        "role": "assistant",
+                        "content": result.get('answer', 'No answer provided'),
+                        "sources": result.get('sources', []),
+                        "context": result.get('context', [])
+                    })
+                    
+                    st.success("✅ Analysis complete!")
+                    
+                    # Clear the input
+                    st.rerun()
+                else:
+                    st.error("Failed to get answer. Please check API connection.")
+    
+    # Display chat history if there are messages
+    if st.session_state.question_chat_history:
+        st.subheader("💬 Question History")
+        
+        # Display chat messages
+        for i, message in enumerate(st.session_state.question_chat_history):
+            if message["role"] == "user":
+                st.markdown(f"**You:** {message['content']}")
+                if message.get('document_id'):
+                    st.markdown(f"*Document ID: {message['document_id']}*")
+                st.markdown("---")
+            else:  # assistant
+                st.markdown(f"**AI Assistant:** {message['content']}")
+                
+                # Display context if available
+                if message.get('context'):
+                    with st.expander("Show Context"):
+                        for ctx in message['context']:
+                            st.markdown(f"- {ctx}")
+                
+                # Display sources if available
+                if message.get('sources'):
+                    sources_str = ", ".join(message['sources'])
+                    st.markdown(f"*Sources: {sources_str}*")
+                st.markdown("---")
+
+elif app_mode == "About":
+    st.title("ℹ️ About FinTech-LLM")
+    
+    st.markdown("""
+    ## FinTech-LLM Document Processing System
+    
+    This application leverages Large Language Models (LLMs) to process and analyze financial documents.
+    
+    ### Technologies Used:
+    - **Backend**: FastAPI
+    - **Frontend**: Streamlit
+    - **LLM Integration**: OpenAI GPT models
+    - **Embeddings**: Vector storage and similarity search
+    
+    ### Features:
+    - Document Upload (PDF, DOCX, TXT)
+    - Intelligent Search and Querying
+    - LLM-powered Analysis
+    - Vector-based Document Retrieval
+    
+    ### How It Works:
+    1. Documents are uploaded and processed
+    2. Text is extracted and chunked
+    3. Embeddings are generated for each chunk
+    4. When you ask a question, it's compared to document embeddings
+    5. Relevant document parts are used as context for LLM response
+    """)
+
+# Footer
+st.divider()
+st.markdown("Powered by **FinTech-LLM** | Built with 🤖 and Streamlit")

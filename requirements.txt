@@ -22,3 +22,5 @@ alembic
 python-dotenv
 httpx
 pydantic-settings
+groq
+google-generativeai

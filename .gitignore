@@ -1,7 +1,7 @@
 # Virtual environment
-venv/
-.env/
-
+.venv/*
+env/*
+venv/*
 # Python cache
 __pycache__/
 *.pyc
@@ -14,15 +14,18 @@ __pycache__/
 
 # Editor-specific files
 .vscode/
-.idea/
+.idea/*
 
 # OS-specific files
 .DS_Store
 Thumbs.db
 
+.qwen/*
 # Environment variables
 .env
 
 # Uploads and vector store
 uploads/
 vector_store/
+
+app/env/

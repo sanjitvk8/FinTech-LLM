@@ -12,6 +12,15 @@ class Settings(BaseSettings):
     # OpenAI Configuration
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "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")
     OPENAI_MODEL: str = "gpt-4-turbo-preview"
+    
+    # Groq Configuration
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    GROQ_MODEL: str = "llama3-8b-8192"
+    
+    # Select which provider to use (groq, openai, auto)
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "openai")
+    
+    # Embedding Configuration
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     
     # Pinecone Configuration

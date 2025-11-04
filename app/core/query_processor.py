@@ -6,6 +6,8 @@ from .embedding_service import EmbeddingService
 from .llm_service import LLMService
 from ..utils.vector_store import VectorStore
 from .config import settings
+from ..services.decision_service import DecisionService
+from ..services.retrieval_service import RetrievalService
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +18,8 @@ class QueryProcessor:
         self.document_processor = DocumentProcessor()
         self.embedding_service = EmbeddingService()
         self.llm_service = LLMService()
+        self.decision_service = DecisionService()
+        self.retrieval_service = RetrievalService()
         
         # Initialize vector store with a default dimension, will be updated if needed
         default_dimension = self.embedding_service.get_embedding_dimension(method="sentence_transformer")
@@ -87,23 +91,21 @@ class QueryProcessor:
     async def _process_single_question(self, question: str) -> str:
         """Process a single question against the loaded documents"""
         try:
-            # Step 1: Generate embedding for the question
-            question_embedding = await self.embedding_service.generate_embeddings([question])
-            
-            # Step 2: Search for relevant chunks
-            search_results = self.vector_store.search(
-                question_embedding[0], 
-                k=settings.MAX_RETRIEVED_CHUNKS,
-                threshold=settings.SIMILARITY_THRESHOLD
+            # Use the enhanced retrieval service for better results
+            search_results = await self.retrieval_service.retrieve_relevant_chunks(
+                query=question,
+                vector_store=self.vector_store,
+                top_k=settings.MAX_RETRIEVED_CHUNKS,
+                rerank=True
             )
             
-            # Step 3: Filter and rank results
+            # Filter results based on similarity threshold
             relevant_chunks = []
             for result in search_results:
                 if result['similarity_score'] >= settings.SIMILARITY_THRESHOLD:
                     relevant_chunks.append(result)
             
-            # Step 4: Generate answer using LLM
+            # Generate answer using LLM
             if relevant_chunks:
                 answer = await self.llm_service.answer_question(question, relevant_chunks)
             else:
@@ -144,18 +146,16 @@ class QueryProcessor:
             
             self.vector_store.add_vectors(chunk_embeddings, document_data['chunks'], chunk_metadata)
             
-            # Step 5: Search for relevant information
-            processed_query = query_info.get('processed_query', query)
-            query_embedding = await self.embedding_service.generate_embeddings([processed_query])
-            
-            search_results = self.vector_store.search(
-                query_embedding[0], 
-                k=settings.MAX_RETRIEVED_CHUNKS,
-                threshold=0.6  # Lower threshold for structured queries
+            # Step 5: Use enhanced retrieval service
+            search_results = await self.retrieval_service.retrieve_relevant_chunks(
+                query=query_info.get('processed_query', query),
+                vector_store=self.vector_store,
+                top_k=settings.MAX_RETRIEVED_CHUNKS,
+                rerank=True
             )
             
-            # Step 6: Make decision
-            decision_result = await self.llm_service.make_decision(query_info, search_results)
+            # Step 6: Use decision service for more comprehensive decision making
+            decision_result = await self.decision_service.make_coverage_decision(query_info, search_results)
             
             processing_time = time.time() - start_time
             
@@ -166,7 +166,8 @@ class QueryProcessor:
                 'processing_time': processing_time,
                 'metadata': {
                     'document_chunks': len(document_data['chunks']),
-                    'similarity_scores': [r['similarity_score'] for r in search_results[:5]]
+                    'similarity_scores': [r['similarity_score'] for r in search_results[:5]],
+                    'enhanced_analysis': True
                 }
             }
             
@@ -183,7 +184,8 @@ class QueryProcessor:
                 'dimension': 1536
             },
             'llm_service': {
-                'model': settings.OPENAI_MODEL,
+                'model': self.llm_service.model if self.llm_service.provider != 'none' else settings.OPENAI_MODEL,
+                'provider': self.llm_service.provider,
                 'max_tokens': settings.MAX_TOKENS_PER_REQUEST
             },
             'configuration': {
@@ -191,6 +193,10 @@ class QueryProcessor:
                 'chunk_overlap': settings.CHUNK_OVERLAP,
                 'similarity_threshold': settings.SIMILARITY_THRESHOLD,
                 'max_retrieved_chunks': settings.MAX_RETRIEVED_CHUNKS
+            },
+            'enhanced_features': {
+                'decision_service_available': True,
+                'retrieval_service_available': True
             }
         }
 

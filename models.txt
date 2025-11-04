@@ -1,0 +1,207 @@
+Available Gemini Models:
+--------------------------------------------------
+Model Name: models/gemini-2.5-pro-preview-03-25
+  Version: 2.5-preview-03-25
+  Display Name: Gemini 2.5 Pro Preview 03-25
+  Description: Gemini 2.5 Pro Preview 03-25
+--------------------------------------------------
+Model Name: models/gemini-2.5-flash-preview-05-20
+  Version: 2.5-preview-05-20
+  Display Name: Gemini 2.5 Flash Preview 05-20
+  Description: Preview release (April 17th, 2025) of Gemini 2.5 Flash
+--------------------------------------------------
+Model Name: models/gemini-2.5-flash
+  Version: 001
+  Display Name: Gemini 2.5 Flash
+  Description: Stable version of Gemini 2.5 Flash, our mid-size multimodal model that supports up to 1 million tokens, released in June of 2025.
+--------------------------------------------------
+Model Name: models/gemini-2.5-flash-lite-preview-06-17
+  Version: 2.5-preview-06-17
+  Display Name: Gemini 2.5 Flash-Lite Preview 06-17
+  Description: Preview release (June 11th, 2025) of Gemini 2.5 Flash-Lite
+--------------------------------------------------
+Model Name: models/gemini-2.5-pro-preview-05-06
+  Version: 2.5-preview-05-06
+  Display Name: Gemini 2.5 Pro Preview 05-06
+  Description: Preview release (May 6th, 2025) of Gemini 2.5 Pro
+--------------------------------------------------
+Model Name: models/gemini-2.5-pro-preview-06-05
+  Version: 2.5-preview-06-05
+  Display Name: Gemini 2.5 Pro Preview
+  Description: Preview release (June 5th, 2025) of Gemini 2.5 Pro
+--------------------------------------------------
+Model Name: models/gemini-2.5-pro
+  Version: 2.5
+  Display Name: Gemini 2.5 Pro
+  Description: Stable release (June 17th, 2025) of Gemini 2.5 Pro
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-exp
+  Version: 2.0
+  Display Name: Gemini 2.0 Flash Experimental
+  Description: Gemini 2.0 Flash Experimental
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash
+  Version: 2.0
+  Display Name: Gemini 2.0 Flash
+  Description: Gemini 2.0 Flash
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-001
+  Version: 2.0
+  Display Name: Gemini 2.0 Flash 001
+  Description: Stable version of Gemini 2.0 Flash, our fast and versatile multimodal model for scaling across diverse tasks, released in January of 2025.
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-exp-image-generation
+  Version: 2.0
+  Display Name: Gemini 2.0 Flash (Image Generation) Experimental
+  Description: Gemini 2.0 Flash (Image Generation) Experimental
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-lite-001
+  Version: 2.0
+  Display Name: Gemini 2.0 Flash-Lite 001
+  Description: Stable version of Gemini 2.0 Flash-Lite
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-lite
+  Version: 2.0
+  Display Name: Gemini 2.0 Flash-Lite
+  Description: Gemini 2.0 Flash-Lite
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-preview-image-generation
+  Version: 2.0
+  Display Name: Gemini 2.0 Flash Preview Image Generation
+  Description: Gemini 2.0 Flash Preview Image Generation
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-lite-preview-02-05
+  Version: preview-02-05
+  Display Name: Gemini 2.0 Flash-Lite Preview 02-05
+  Description: Preview release (February 5th, 2025) of Gemini 2.0 Flash-Lite
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-lite-preview
+  Version: preview-02-05
+  Display Name: Gemini 2.0 Flash-Lite Preview
+  Description: Preview release (February 5th, 2025) of Gemini 2.0 Flash-Lite
+--------------------------------------------------
+Model Name: models/gemini-2.0-pro-exp
+  Version: 2.5-exp-03-25
+  Display Name: Gemini 2.0 Pro Experimental
+  Description: Experimental release (March 25th, 2025) of Gemini 2.5 Pro
+--------------------------------------------------
+Model Name: models/gemini-2.0-pro-exp-02-05
+  Version: 2.5-exp-03-25
+  Display Name: Gemini 2.0 Pro Experimental 02-05
+  Description: Experimental release (March 25th, 2025) of Gemini 2.5 Pro
+--------------------------------------------------
+Model Name: models/gemini-exp-1206
+  Version: 2.5-exp-03-25
+  Display Name: Gemini Experimental 1206
+  Description: Experimental release (March 25th, 2025) of Gemini 2.5 Pro
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-thinking-exp-01-21
+  Version: 2.5-preview-05-20
+  Display Name: Gemini 2.5 Flash Preview 05-20
+  Description: Preview release (April 17th, 2025) of Gemini 2.5 Flash
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-thinking-exp
+  Version: 2.5-preview-05-20
+  Display Name: Gemini 2.5 Flash Preview 05-20
+  Description: Preview release (April 17th, 2025) of Gemini 2.5 Flash
+--------------------------------------------------
+Model Name: models/gemini-2.0-flash-thinking-exp-1219
+  Version: 2.5-preview-05-20
+  Display Name: Gemini 2.5 Flash Preview 05-20
+  Description: Preview release (April 17th, 2025) of Gemini 2.5 Flash
+--------------------------------------------------
+Model Name: models/gemini-2.5-flash-preview-tts
+  Version: gemini-2.5-flash-exp-tts-2025-05-19
+  Display Name: Gemini 2.5 Flash Preview TTS
+  Description: Gemini 2.5 Flash Preview TTS
+--------------------------------------------------
+Model Name: models/gemini-2.5-pro-preview-tts
+  Version: gemini-2.5-pro-preview-tts-2025-05-19
+  Display Name: Gemini 2.5 Pro Preview TTS
+  Description: Gemini 2.5 Pro Preview TTS
+--------------------------------------------------
+Model Name: models/learnlm-2.0-flash-experimental
+  Version: 2.0
+  Display Name: LearnLM 2.0 Flash Experimental
+  Description: LearnLM 2.0 Flash Experimental
+--------------------------------------------------
+Model Name: models/gemma-3-1b-it
+  Version: 001
+  Display Name: Gemma 3 1B
+  Description: 
+--------------------------------------------------
+Model Name: models/gemma-3-4b-it
+  Version: 001
+  Display Name: Gemma 3 4B
+  Description: 
+--------------------------------------------------
+Model Name: models/gemma-3-12b-it
+  Version: 001
+  Display Name: Gemma 3 12B
+  Description: 
+--------------------------------------------------
+Model Name: models/gemma-3-27b-it
+  Version: 001
+  Display Name: Gemma 3 27B
+  Description: 
+--------------------------------------------------
+Model Name: models/gemma-3n-e4b-it
+  Version: 001
+  Display Name: Gemma 3n E4B
+  Description: 
+--------------------------------------------------
+Model Name: models/gemma-3n-e2b-it
+  Version: 001
+  Display Name: Gemma 3n E2B
+  Description: 
+--------------------------------------------------
+Model Name: models/gemini-flash-latest
+  Version: Gemini Flash Latest
+  Display Name: Gemini Flash Latest
+  Description: Latest release of Gemini Flash
+--------------------------------------------------
+Model Name: models/gemini-flash-lite-latest
+  Version: Gemini Flash-Lite Latest
+  Display Name: Gemini Flash-Lite Latest
+  Description: Latest release of Gemini Flash-Lite
+--------------------------------------------------
+Model Name: models/gemini-pro-latest
+  Version: Gemini Pro Latest
+  Display Name: Gemini Pro Latest
+  Description: Latest release of Gemini Pro
+--------------------------------------------------
+Model Name: models/gemini-2.5-flash-lite
+  Version: 001
+  Display Name: Gemini 2.5 Flash-Lite
+  Description: Stable version of Gemini 2.5 Flash-Lite, released in July of 2025
+--------------------------------------------------
+Model Name: models/gemini-2.5-flash-image-preview
+  Version: 2.0
+  Display Name: Nano Banana
+  Description: Gemini 2.5 Flash Preview Image
+--------------------------------------------------
+Model Name: models/gemini-2.5-flash-image
+  Version: 2.0
+  Display Name: Nano Banana
+  Description: Gemini 2.5 Flash Preview Image
+--------------------------------------------------
+Model Name: models/gemini-2.5-flash-preview-09-2025
+  Version: Gemini 2.5 Flash Preview 09-2025
+  Display Name: Gemini 2.5 Flash Preview Sep 2025
+  Description: Gemini 2.5 Flash Preview Sep 2025
+--------------------------------------------------
+Model Name: models/gemini-2.5-flash-lite-preview-09-2025
+  Version: 2.5-preview-09-25
+  Display Name: Gemini 2.5 Flash-Lite Preview Sep 2025
+  Description: Preview release (Septempber 25th, 2025) of Gemini 2.5 Flash-Lite
+--------------------------------------------------
+Model Name: models/gemini-robotics-er-1.5-preview
+  Version: 1.5-preview
+  Display Name: Gemini Robotics-ER 1.5 Preview
+  Description: Gemini Robotics-ER 1.5 Preview
+--------------------------------------------------
+Model Name: models/gemini-2.5-computer-use-preview-10-2025
+  Version: Gemini 2.5 Computer Use Preview 10-2025
+  Display Name: Gemini 2.5 Computer Use Preview 10-2025
+  Description: Gemini 2.5 Computer Use Preview 10-2025
+--------------------------------------------------

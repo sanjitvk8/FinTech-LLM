@@ -284,4 +284,3 @@ class RetrievalService:
         except Exception as e:
             logger.error(f"Error calculating retrieval stats: {str(e)}")
             return {'error': str(e)}
-

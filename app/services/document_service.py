@@ -173,4 +173,3 @@ class DocumentService:
         except Exception as e:
             logger.error(f"Error in batch processing: {str(e)}")
             raise
-

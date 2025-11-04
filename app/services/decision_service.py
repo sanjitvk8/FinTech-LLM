@@ -139,15 +139,29 @@ class DecisionService:
             }}
             """
             
-            response = await self.llm_service.client.chat.completions.create(
-                model=self.llm_service.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert insurance policy analyst. Always respond with valid JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1,
-                max_tokens=800
-            )
+            if self.llm_service.provider == 'groq':
+                response = await asyncio.to_thread(
+                    self.llm_service.groq_client.chat.completions.create,
+                    model=self.llm_service.model,
+                    messages=[
+                        {"role": "system", "content": "You are an expert insurance policy analyst. Always respond with valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=800,
+                    response_format={"type": "json_object"},
+                )
+            else:  # openai
+                response = await asyncio.to_thread(
+                    self.llm_service.openai_client.chat.completions.create,
+                    model=self.llm_service.model,
+                    messages=[
+                        {"role": "system", "content": "You are an expert insurance policy analyst. Always respond with valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=800
+                )
             
             return json.loads(response.choices[0].message.content)
             
@@ -201,15 +215,29 @@ class DecisionService:
             }}
             """
             
-            response = await self.llm_service.client.chat.completions.create(
-                model=self.llm_service.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert at identifying insurance policy exclusions."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1,
-                max_tokens=600
-            )
+            if self.llm_service.provider == 'groq':
+                response = await asyncio.to_thread(
+                    self.llm_service.groq_client.chat.completions.create,
+                    model=self.llm_service.model,
+                    messages=[
+                        {"role": "system", "content": "You are an expert at identifying insurance policy exclusions."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=600,
+                    response_format={"type": "json_object"},
+                )
+            else:  # openai
+                response = await asyncio.to_thread(
+                    self.llm_service.openai_client.chat.completions.create,
+                    model=self.llm_service.model,
+                    messages=[
+                        {"role": "system", "content": "You are an expert at identifying insurance policy exclusions."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=600
+                )
             
             return json.loads(response.choices[0].message.content)
             
@@ -259,15 +287,29 @@ class DecisionService:
             }}
             """
             
-            response = await self.llm_service.client.chat.completions.create(
-                model=self.llm_service.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert at analyzing insurance waiting periods."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1,
-                max_tokens=600
-            )
+            if self.llm_service.provider == 'groq':
+                response = await asyncio.to_thread(
+                    self.llm_service.groq_client.chat.completions.create,
+                    model=self.llm_service.model,
+                    messages=[
+                        {"role": "system", "content": "You are an expert at analyzing insurance waiting periods."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=600,
+                    response_format={"type": "json_object"},
+                )
+            else:  # openai
+                response = await asyncio.to_thread(
+                    self.llm_service.openai_client.chat.completions.create,
+                    model=self.llm_service.model,
+                    messages=[
+                        {"role": "system", "content": "You are an expert at analyzing insurance waiting periods."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=600
+                )
             
             return json.loads(response.choices[0].message.content)
             
@@ -446,4 +488,3 @@ class DecisionService:
             "confidence_score": 0.8,
             "referenced_clauses": self._extract_clause_references(context_chunks)
         }
-
